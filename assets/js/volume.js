@@ -8,27 +8,47 @@ const formatter = new Intl.NumberFormat('en-US', {
 });
 
 const fetchVolume = async () => {
+	let totalVolume = new BigNumber(0)
 	try {
     	const response = await axios.get('https://api.dydx.exchange/v1/stats/markets')
         const markets = response.data.markets
 
         const keys = Object.keys(markets)
+        let total = new BigNumber(0)
 
-        let totalVolume = keys.reduce((total, key) => {
+        let volume = keys.reduce((total, key) => {
         	let market = markets[key]
-        	return total + parseInt(market.usdVolume)
+        	return total.plus(new BigNumber(market.usdVolume))
         }, 0)
 
-        totalVolume = formatter.format(totalVolume)
+        totalVolume = totalVolume.plus(volume)
 
-        // console.log("totalVolume", totalVolume)
-
-        return totalVolume
+        // console.log("dydx volume", volume.toString())
     
    } catch(error) {
    	 console.error(error)
    }
-   return ""
+
+   try {
+    	const response = await axios.get('https://api.dmex.app/api/futures/stats')
+
+
+        let volume = new BigNumber(response.data.data.volume_24h)
+  		volume = volume.dividedBy(10**8)
+        // console.log("dmex volume 2", volume.toString())
+
+        totalVolume = totalVolume.plus(volume)
+
+    
+   } catch(error) {
+   	 console.error(error)
+   }
+
+   totalVolume = formatter.format(totalVolume.toNumber())
+
+   
+
+   return totalVolume
 }
 
 const showVolume = async () => {
